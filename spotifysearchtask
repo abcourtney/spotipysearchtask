@@ -1,0 +1,162 @@
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="",
+                                               client_secret="",
+                                               redirect_uri="http://localhost:8080/"))
+
+# shows tracks from a specific artist and writes into a txt file
+choice = input("What artist's songs do you want some names of? ")
+
+with open('songs.txt', 'r') as song_file:
+    contents = song_file.read()
+
+results = sp.search(q=[choice], limit=30)
+
+with open('songs.txt', 'a') as song_file:  # open in `append mode`
+    for idx, track in enumerate(results['tracks']['items']):  # run loop inside `with open`
+        print(idx, track['name'])
+        song_file.write(f'[{idx}, {track["name"]}]\n')
+
+# play 30 seconds of audio, show track list and the cover art
+beyonce_uri = 'spotify:artist:6vWDO969PvNqNYHIOW5v0m'
+
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="",
+                                               client_secret="",
+                                               redirect_uri="http://localhost:8080/"))
+results = sp.artist_top_tracks(beyonce_uri)
+
+for track in results['tracks'][:10]:
+    print('track    : ' + track['name'])
+    print('audio    : ' + track['preview_url'])
+    print('cover art: ' + track['album']['images'][0]['url'])
+    print()
+#
+
+#
+# gets beyonce's album list
+beyonce_uri = 'spotify:artist:6vWDO969PvNqNYHIOW5v0m'
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="",
+                                               client_secret="",
+                                               redirect_uri="http://localhost:8080/"))
+
+results = sp.artist_albums(beyonce_uri, album_type='album')
+albums = results['items']
+while results['next']:
+    results = sp.next(results)
+    albums.extend(results['items'])
+
+    for album in albums:
+        print(album['name'])
+
+
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+## this will bring up the top artists for a user and print them all
+scope = 'user-top-read'
+ranges = ['short_term', 'medium_term', 'long_term']
+
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="",
+                                               client_secret="",
+                                               redirect_uri="http://localhost:8080/",
+                                               scope=scope))
+
+for sp_range in ['short_term', 'medium_term', 'long_term']:
+    print("range:", sp_range)
+
+    results = sp.current_user_top_artists(time_range=sp_range, limit=50) # can change limit depending on how many you need
+
+    for i, item in enumerate(results['items']):
+        print(i, item['name'])
+    print()
+
+# top tracks, short, medium and long term
+for sp_range in ranges:
+    print("range:", sp_range)
+    results = sp.current_user_top_tracks(time_range=sp_range, limit=50) # can change limit depending on how many you need
+    for i, item in enumerate(results['items']):
+        print(i, item['name'], '//', item['artists'][0]['name'])
+    print()
+
+
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="",
+                                               client_secret="",
+                                               redirect_uri="http://localhost:8080/",
+                                               scope="playlist-modify-public"))
+
+# creates an empty playlist called search project:
+def create_playlist(sp, username, playlist_name, playlist_description):
+    playlists = sp.user_playlist_create(username, playlist_name, description=playlist_description)
+
+create_playlist(sp, '', 'search project', 'codefirstgirls search project')
+
+
+import time
+import pandas as pd
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+
+client_id = ''
+client_secret = ''
+
+client_credentials_manager = SpotifyClientCredentials(client_id, client_secret)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
+def getTrackIDs(user, playlist_id):
+    ids = []
+    playlist = sp.user_playlist(user, playlist_id)
+    for item in playlist['tracks']['items']:
+        track = item['track']
+        ids.append(track['id'])
+    return ids
+
+ids = getTrackIDs('', '') # here put username of your spotify account (not client id) and the id of the playlist
+
+#
+# print(len(ids))
+# print(ids)
+
+def getTrackFeatures(id):
+    meta = sp.track(id)
+    features = sp.audio_features(id)
+
+    # meta
+    name = meta['name']
+    album = meta['album']['name']
+    artist = meta['album']['artists'][0]['name']
+    release_date = meta['album']['release_date']
+    length = meta['duration_ms']
+    popularity = meta['popularity']
+
+    # features
+    acousticness = features[0]['acousticness']
+    danceability = features[0]['danceability']
+    energy = features[0]['energy']
+    instrumentalness = features[0]['instrumentalness']
+    liveness = features[0]['liveness']
+    loudness = features[0]['loudness']
+    speechiness = features[0]['speechiness']
+    tempo = features[0]['tempo']
+    time_signature = features[0]['time_signature']
+
+    track = [name, album, artist, release_date, length, popularity, danceability, acousticness, danceability, energy,
+             instrumentalness, liveness, loudness, speechiness, tempo, time_signature]
+    return track
+
+
+# loop over track ids
+tracks = []
+for i in range(len(ids)):
+    time.sleep(.5)
+    track = getTrackFeatures(ids[i])
+    tracks.append(track)
+
+# create dataset
+df = pd.DataFrame(tracks, columns=['name', 'album', 'artist', 'release_date', 'length', 'popularity', 'danceability',
+                                   'acousticness', 'danceability', 'energy', 'instrumentalness', 'liveness', 'loudness',
+                                   'speechiness', 'tempo', 'time_signature'])
+df.to_csv("spotify.csv", sep=',')
